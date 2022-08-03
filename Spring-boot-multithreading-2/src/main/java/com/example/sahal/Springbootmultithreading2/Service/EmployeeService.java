@@ -45,53 +45,54 @@ public class EmployeeService {
     private CompanyFeignService companyFeignService;
 
     @Async
-    public CompletableFuture<String> saveEmployeesThroughFile(MultipartFile file) throws Exception{
+    public CompletableFuture<String> saveEmployeesThroughFile(MultipartFile file) throws GlobalException {
         try {
+//            Employee employee = null;
+//            employee.getCityId();
             List<Employee> employeeList = parseCSVFile(file);
             log.info("Saving list of employees of size " + employeeList.size() + " " + Thread.currentThread().getName());
             employeeRepository.saveAll(employeeList);
             String message = "Data saved successfully!";
             return CompletableFuture.completedFuture(message);
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Data not saved due to some internal error!");
         }
     }
 
     @Async
-    public CompletableFuture<List<EmployeeDto>> findAllEmployees() {
+    public CompletableFuture<List<EmployeeDto>> findAllEmployees() throws GlobalException {
         List<EmployeeDto> employeeDtoList;
         try {
+//            Employee employee =null;
+//            employee.getCityId();
             log.info("Getting list of employees by "+Thread.currentThread().getName());
             List<Employee> employeeList = employeeRepository.findAll()
                     .stream()
                     .filter(Employee::isActive)
                     .collect(Collectors.toList());
             employeeDtoList = employeeMapper.entityToDto(employeeList);
-        }
-        catch (Exception ex){
+            return CompletableFuture.completedFuture(employeeDtoList);
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Employees not found due to some internal error!");
         }
-        return CompletableFuture.completedFuture(employeeDtoList);
     }
 
     @Async
-    public CompletableFuture<Employee> findAllEmployeesByThread(long id) {
+    public CompletableFuture<Employee> findAllEmployeesByThread(long id) throws GlobalException {
         Employee employee;
         try {
             employee = employeeRepository.findById(id).get();
             log.info("Finding employees by thread " + Thread.currentThread().getName());
-        }
-        catch (Exception ex){
+            return CompletableFuture.completedFuture(employee);
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Not found due to some internal error!");
         }
-        return CompletableFuture.completedFuture(employee);
     }
 
-    private List<Employee> parseCSVFile(MultipartFile file) throws Exception{
+    private List<Employee> parseCSVFile(MultipartFile file) throws GlobalException {
         final List<Employee> employeeList = new ArrayList<>();
         try {
             try (final BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
@@ -112,16 +113,16 @@ public class EmployeeService {
                 }
                 return employeeList;
             }
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Failed to parse CSV file "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Failed to parse CSV file due to some internal error!");
         }
     }
 
-
     public ResponseValueObject findEmployeeById(long id) throws GlobalException {
         try {
+//            EmployeeDto employeeDto2 = null;
+//            employeeDto2.getCityId();
             Employee employee = employeeRepository.findById(id)
                     .filter(Employee::isActive)
                     .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id " + id));
@@ -135,28 +136,25 @@ public class EmployeeService {
             vo.setCompany(companyDto);
             vo.setEmployeeList(employeeDtoList);
             return vo;
-        }
-//        catch (ResourceNotFoundException  rnfe) {
-//            log.error("Exception caught "+rnfe.getMessage());
-//            throw rnfe;
-//        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
             ResourceNotFoundException resourceNotFoundException
                     = ex instanceof ResourceNotFoundException ? ((ResourceNotFoundException) ex) : null;
             if(resourceNotFoundException != null)
-                throw new GlobalException(ex.getLocalizedMessage());
+                throw new ResourceNotFoundException(ex.getLocalizedMessage());
             else
-                throw new GlobalException("abcd");
+                throw new GlobalException("Employee with id "+id+" not found due to some internal error!");
         }
     }
 
     @Async
-    public CompletableFuture<ResponseValueObject> findEmployeesByCityName(String name) throws ExecutionException, InterruptedException {
+    public CompletableFuture<ResponseValueObject> findEmployeesByCityName(String name) throws GlobalException {
         ResponseValueObject vo = new ResponseValueObject();
         List<Employee> employeeList;
-        List<EmployeeDto> employeeDtoList = new ArrayList<>();
+        List<EmployeeDto> employeeDtoList;
         try {
+//            Employee employee = null;
+//            employee.getCityId();
             CityDto cityDto = cityFeignService.findCityByName(name).getBody();
             if (cityDto != null && cityDto.getErrors() == null) {
                 long cityId = cityDto.getId();
@@ -177,20 +175,21 @@ public class EmployeeService {
                 cityDto1.setErrors(error);
                 vo.setCity(cityDto1);
             }
-        }
-        catch (Exception ex){
+            return CompletableFuture.completedFuture(vo);
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Employee by city not found due to some internal error!");
         }
-        return CompletableFuture.completedFuture(vo);
     }
 
     @Async
-    public CompletableFuture<ResponseValueObject> findEmployeesByCompanyName(String name) throws Exception{
+    public CompletableFuture<ResponseValueObject> findEmployeesByCompanyName(String name) throws GlobalException{
         ResponseValueObject vo = new ResponseValueObject();
         List<Employee> employeeList;
         List<EmployeeDto> employeeDtoList;
         try {
+//            Employee employee = null;
+//            employee.getCityId();
             CompanyDto companyDto = companyFeignService.findCompanyByName(name).getBody();
             if (companyDto != null && companyDto.getError() == null) {
                 long companyId = companyDto.getId();
@@ -211,38 +210,40 @@ public class EmployeeService {
                 companyDto1.setError(errorDto);
                 vo.setCompany(companyDto1);
             }
-        }
-        catch (Exception ex){
+            return CompletableFuture.completedFuture(vo);
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Employee by city not found due to some internal error!");
         }
-        return CompletableFuture.completedFuture(vo);
     }
 
     @Async
-    public CompletableFuture<String> saveEmployee(EmployeeDto employeeDto) {
+    public CompletableFuture<String> saveEmployee(EmployeeDto employeeDto) throws GlobalException {
+        try {
+//        Employee employee1 =null;
+//        employee1.getRegistrationId();
         Employee employee = employeeMapper.dtoToEntity(employeeDto);
         employee.setActive(true);
         String result = null;
         Optional<Employee> existingEmployee = Optional.ofNullable(
                 employeeRepository.findByRegistrationId(employee.getRegistrationId())
                         .orElse(null));
-        try {
             if (existingEmployee.equals(Optional.empty())) {
                 employeeRepository.save(employee);
                 result = "Employee created successfully";
+                return CompletableFuture.completedFuture(result);
             }
             else {
-                result = "Employee already exist with registration id "+employee.getRegistrationId();
                 throw new EmployeeAlreadyExistException("Employee already exist with registration id "+employee.getRegistrationId());
             }
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
-        }
-        finally {
-            return CompletableFuture.completedFuture(result);
+            EmployeeAlreadyExistException employeeAlreadyExistException
+                    = ex instanceof EmployeeAlreadyExistException ? ((EmployeeAlreadyExistException) ex) : null;
+            if(employeeAlreadyExistException != null)
+                throw new EmployeeAlreadyExistException(ex.getLocalizedMessage());
+            else
+                throw new GlobalException("Employee not created due to some internal error!");
         }
     }
 
@@ -259,21 +260,27 @@ public class EmployeeService {
                 updatedEmployee.setId(id);
                 employeeRepository.save(updatedEmployee);
                 result = "Employee with id " + id + " updated successfully";
+                return CompletableFuture.completedFuture(result);
             } else {
                 throw new ResourceNotFoundException("Employee with id " + id + " does not exist!");
             }
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            ResourceNotFoundException resourceNotFoundException
+                    = ex instanceof ResourceNotFoundException ? ((ResourceNotFoundException) ex) : null;
+            if(resourceNotFoundException != null)
+                throw new ResourceNotFoundException(ex.getLocalizedMessage());
+            else
+                throw new GlobalException("Employee not updated due to some internal error!");
         }
-        return CompletableFuture.completedFuture(result);
     }
 
     @Async
-    public CompletableFuture<String> deleteEmployee(long id) {
+    public CompletableFuture<String> deleteEmployee(long id) throws GlobalException {
         String message = null;
         try {
+//            Employee employee1 = null;
+//            employee1.getCityId();
             Optional<Employee> employee = Optional.ofNullable(employeeRepository.findById(id)
                     .filter(Employee::isActive).orElseThrow(() -> new ResourceNotFoundException("Employee not found with id "+id)));
             if (employee.isPresent()) {
@@ -281,11 +288,15 @@ public class EmployeeService {
                 employeeRepository.save(employee.get());
                 message = "Employee with id "+id+" deleted successfully!";
             }
-        }
-        catch (Exception ex){
+            return CompletableFuture.completedFuture(message);
+        } catch (Exception ex) {
             log.error("Exception caught "+ex.getMessage());
-            throw ex;
+            throw new GlobalException("Employee not deleted due to some internal error!");
         }
-        return CompletableFuture.completedFuture(message);
+    }
+
+    public String deleteTestData() {
+        employeeRepository.deleteTestData();
+        return "Test data deleted successfully";
     }
 }

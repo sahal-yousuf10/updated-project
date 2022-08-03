@@ -34,18 +34,15 @@ public class EmployeeController {
 
     @PostMapping(value = "/employees", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = "application/json")
     public ResponseEntity<String> saveEmployeesThroughFile(
-            @Valid @RequestParam(value = "files")MultipartFile[] files) throws Exception{
+            @Valid @RequestParam(value = "files")MultipartFile[] files) throws Exception {
         String result = null;
         try {
             for (MultipartFile file : files) {
                 result = employeeService.saveEmployeesThroughFile(file).get();
             }
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Data not saved due to some internal issue");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -54,16 +51,13 @@ public class EmployeeController {
 
     @PostMapping("/employee")
     public ResponseEntity<String> saveEmployee(
-            @Valid @RequestBody EmployeeDto employeeDto) throws ExecutionException, InterruptedException {
+            @Valid @RequestBody EmployeeDto employeeDto) throws Exception{
         String result;
         try {
             result = employeeService.saveEmployee(employeeDto).get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Employee not created due to some internal error!");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -78,11 +72,8 @@ public class EmployeeController {
         try {
             result = employeeService.updateEmployee(id, employeeDto).get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Employee with id "+id+" not updated due to some internal error!");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -95,9 +86,8 @@ public class EmployeeController {
         try {
             employeeDtoList = employeeService.findAllEmployees().get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            throw new Exception("Data not found due to some internal error!");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.FOUND)
@@ -112,12 +102,7 @@ public class EmployeeController {
         try {
             vo = employeeService.findEmployeeById(id);
         }
-//        catch (ResourceNotFoundException rnfe){
-//            throw rnfe;
-//        }
         catch (GlobalException ex){
-            //hrow ex;
-//            throw new GlobalException("Employee with id "+id+" not found due to some internal error");
             throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
@@ -132,9 +117,8 @@ public class EmployeeController {
         try {
             vo = employeeService.findEmployeesByCityName(name).get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            throw new Exception("Employees with city "+name+" not found due to some internal error!");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.FOUND)
@@ -148,9 +132,8 @@ public class EmployeeController {
         try {
             vo = employeeService.findEmployeesByCompanyName(name).get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            throw new Exception("Employees with company "+name+" not found due to some internal error");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.FOUND)
@@ -160,16 +143,13 @@ public class EmployeeController {
     @DeleteMapping("/employee/{id}")
     public ResponseEntity deleteEmployee(
             @Positive(message = ID_SHOULD_BE_POSITIVE_ERROR_MESSAGE)
-            @PathVariable long id) throws ExecutionException, InterruptedException {
+            @PathVariable long id) throws Exception {
         String result = null;
         try {
             result = employeeService.deleteEmployee(id).get();
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Employee with id "+id+" not deleted due to some internal error");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity.ok(result);
     }
@@ -184,12 +164,18 @@ public class EmployeeController {
                 employeeList.add(employee);
             }
         }
-        catch (Exception ex){
-            log.error("Exception caught "+ex.getMessage());
-            throw new Exception("Employees not found due to some internal error!");
+        catch (GlobalException ex){
+            throw new GlobalException(ex.getMessage());
         }
         return ResponseEntity
                 .status(HttpStatus.FOUND)
                 .body(employeeList);
+    }
+
+    @DeleteMapping(value = "delete/test")
+    public ResponseEntity<String> deleteTestData(){
+        String message;
+        message = employeeService.deleteTestData();
+        return ResponseEntity.ok(message);
     }
 }

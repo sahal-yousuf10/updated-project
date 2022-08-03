@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
 
     // handle global exceptions
     @ExceptionHandler(GlobalException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorDto handleGlobalException
     (GlobalException exception, WebRequest request){
         ErrorDto errorDto = new ErrorDto(

@@ -15,4 +15,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>{
     List<Employee> findAllByCityId(long id);
     List<Employee> findAllByCompanyId(long id);
     Optional<Employee> findByRegistrationId(long id);
+    @Query(value = "DELETE * FROM employee WHERE first_name LIKE test%" , nativeQuery = true)
+    void deleteTestData();
 }
